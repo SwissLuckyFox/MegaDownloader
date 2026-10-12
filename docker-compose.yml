@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  megasync:
+    build: .
+    image: megasync:latest
+    container_name: megasync
+    restart: unless-stopped
+    environment:
+      - PUID=99                  # Unraid Standard 'nobody'
+      - PGID=100                 # Unraid Standard 'users'
+      - UMASK=022
+      - TZ=Europe/Berlin
+      - LINKS_FILE=/config/Link.txt
+      - DOWNLOAD_DIR=/downloads
+      # Option 1: Täglich zu einer festen Uhrzeit prüfen (z.B. 03:00 Uhr nachts)
+      - SCAN_TIME=03:00
+      # Option 2: Oder per Zeitintervall in Sekunden (86400 = 24 Stunden)
+      # - SCAN_INTERVAL=86400
+      - RUN_ON_STARTUP=true
+      # Optionale Zugangsdaten für Mega (höheres Kontingent / Pro-Account):
+      # - MEGA_USERNAME=deine-email@beispiel.de
+      # - MEGA_PASSWORD=dein-passwort
+    volumes:
+      # Verzeichnis für die Link.txt Konfiguration:
+      - /mnt/user/appdata/megasync:/config
+      # ODER direkte Datei-Bindung für Link.txt:
+      # - /mnt/user/appdata/megasync/Link.txt:/config/Link.txt
+      # Zielverzeichnis für heruntergeladene Dateien:
+      - /mnt/user/downloads/megasync:/downloads

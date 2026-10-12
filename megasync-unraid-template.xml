@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>megasync</Name>
+  <Repository>megasync:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview>Prüft täglich konfigurierte MEGA-Links, gleicht neue Dateien ab und lädt diese automatisch herunter. Die Links werden in einer 'Link.txt' Datei auf Unraid gespeichert und bei jedem Suchlauf frisch eingelesen.</Overview>
+  <Category>Backup: Tools:</Category>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon>https://mega.io/wp-content/themes/mega/assets/images/mega-icon.svg</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="Config-Verzeichnis (Link.txt)" Target="/config" Default="/mnt/user/appdata/megasync" Mode="rw" Description="Pfad auf dem Unraid-Host, in dem sich Link.txt befindet." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/megasync</Config>
+  <Config Name="Download-Verzeichnis" Target="/downloads" Default="/mnt/user/downloads/megasync" Mode="rw" Description="Zielverzeichnis für heruntergeladene Dateien auf dem Unraid-Server." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/downloads/megasync</Config>
+  <Config Name="Tägliche Prüfzeit (SCAN_TIME)" Target="SCAN_TIME" Default="03:00" Description="Feste Uhrzeit im Format HH:MM (z.B. 03:00 für 3 Uhr nachts), zu der täglich geprüft werden soll. Wenn leer gelassen, wird SCAN_INTERVAL verwendet." Type="Variable" Display="always" Required="false" Mask="false">03:00</Config>
+  <Config Name="Prüf-Intervall (SCAN_INTERVAL)" Target="SCAN_INTERVAL" Default="86400" Description="Intervall in Sekunden (86400 = 24 Stunden), falls SCAN_TIME nicht genutzt wird." Type="Variable" Display="always" Required="false" Mask="false">86400</Config>
+  <Config Name="Beim Start sofort prüfen" Target="RUN_ON_STARTUP" Default="true" Description="Soll direkt beim Start des Containers ein erster Prüflauf gestartet werden? (true / false)" Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+  <Config Name="Pfad zur Link-Datei im Container" Target="LINKS_FILE" Default="/config/Link.txt" Description="Interner Pfad zur Link.txt Datei (Standard: /config/Link.txt)." Type="Variable" Display="advanced" Required="false" Mask="false">/config/Link.txt</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Description="Unraid Benutzer-ID (Standard: 99 für nobody)" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Description="Unraid Gruppen-ID (Standard: 100 für users)" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="UMASK" Target="UMASK" Default="022" Description="Dateiberechtigungsmaske" Type="Variable" Display="advanced" Required="false" Mask="false">022</Config>
+  <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Description="Zeitzone für korrekte Uhrzeiten" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
+  <Config Name="MEGA Benutzername (optional)" Target="MEGA_USERNAME" Default="" Description="E-Mail-Adresse deines MEGA-Accounts (optional für höheres Download-Limit)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="MEGA Passwort (optional)" Target="MEGA_PASSWORD" Default="" Description="Passwort deines MEGA-Accounts (optional)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+</Container>

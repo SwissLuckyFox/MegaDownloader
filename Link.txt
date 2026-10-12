@@ -1,0 +1,19 @@
+# ============================================================
+# MegaSync - Link Konfiguration für Unraid
+# ============================================================
+# Trage hier deine 3 MEGA-Links ein (ein Link pro Zeile).
+#
+# Jedes Mal wenn MegaSync einen Suchlauf startet (täglich),
+# wird diese Datei frisch eingelesen. Änderungen sind sofort
+# beim nächsten Scan aktiv, ohne den Container neu starten zu müssen!
+#
+# Zeilen mit '#' am Anfang oder Leerzeilen werden ignoriert.
+#
+# Optional: Du kannst mit '|' einen separaten Zielordner pro Link angeben:
+# https://mega.nz/folder/xyz#abc | Ordner1
+# https://mega.nz/folder/uvw#def | Ordner2
+#
+# Trage unten deine echten Links ein:
+https://mega.nz/folder/DEIN_LINK_1#SCHLUESSEL_1
+https://mega.nz/folder/DEIN_LINK_2#SCHLUESSEL_2
+https://mega.nz/folder/DEIN_LINK_3#SCHLUESSEL_3
