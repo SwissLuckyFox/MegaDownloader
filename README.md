@@ -192,6 +192,25 @@ docker compose up -d
 
 ## Funktionsweise & Logs
 
+### Ungültige Links und Entschlüsselungsfehler
+
+`DEIN_LINK_1` und `SCHLUESSEL_1` sind nur Platzhalter und müssen ersetzt
+oder auskommentiert werden. Meldungen wie `Skipping invalid Mega download link`,
+`key can't be decrypted` oder `CRITICAL` sind keine bereits vorhandenen Dateien.
+Auch bei Exit-Code 0 wird ein solcher Prüflauf als fehlgeschlagen oder
+unvollständig gemeldet. Ein erreichtes Transferlimit ist ebenfalls kein Erfolg.
+
+Bei Entschlüsselungsfehlern zuerst den vollständigen Link im MEGA-Webclient
+prüfen: Lassen sich die betroffenen Dateien dort anzeigen und herunterladen?
+Falls nicht, den Link bzw. Schlüssel beim Freigebenden prüfen lassen.
+Falls der Webclient funktioniert, müssen Version und Kompatibilität von
+`megatools` untersucht werden. Die Logauswertung repariert keine Dateischlüssel.
+Echte Links und Schlüssel nicht in öffentliche Issues oder Logs hochladen.
+
+Die Ausgabezählung erkennt nur eindeutige Meldungen (`already downloaded`,
+`Downloaded`). Sie ist kein vollständiger Inhaltsvergleich und erkennt keine
+gleich großen Inhaltsänderungen.
+
 Im Unraid-WebUI kannst du jederzeit auf das Icon des Containers klicken und **Protokoll (Logs)** wählen. Die Ausgabe sieht übersichtlich so aus:
 
 ```text

@@ -197,20 +197,24 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 if not clean_line:
                     continue
 
-                # Typische megatools Ausgaben erkennen und filtern
-                if "Skipping" in clean_line or "already downloaded" in clean_line.lower():
-                    skipped_count += 1
-                    # Nur auf Debug loggen, um Logs sauber zu halten
-                    log(f"[Geprüft] {clean_line}", "DEBUG")
-                elif "Downloaded" in clean_line or "F:" in clean_line:
-                    downloaded_count += 1
-                    log(f"[Neu geladen] {clean_line}", "INFO")
-                elif "Bandwidth limit" in clean_line or "Transfer quota exceeded" in clean_line or "509" in clean_line:
+                lower_line = clean_line.lower()
+                if "bandwidth limit" in lower_line or "transfer quota exceeded" in lower_line:
                     quota_reached = True
                     log(f"[Limit] MEGA Bandbreiten-Limit erreicht: {clean_line}", "WARN")
-                elif "ERROR" in clean_line or "Failed" in clean_line:
+                elif any(marker in lower_line for marker in (
+                    "warning:", "error", "failed", "critical", "can't be decrypted",
+                )):
                     error_messages.append(clean_line)
-                    log(f"[Fehler] {clean_line}", "WARN")
+                    log(f"[Fehler] {clean_line}", "ERROR")
+                elif "already downloaded" in lower_line:
+                    skipped_count += 1
+                    log(f"[Geprüft] {clean_line}", "DEBUG")
+                elif "Skipping" in clean_line:
+                    error_messages.append(clean_line)
+                    log(f"[Nicht abgeglichen] {clean_line}", "WARN")
+                elif "Downloaded" in clean_line:
+                    downloaded_count += 1
+                    log(f"[Neu geladen] {clean_line}", "INFO")
                 else:
                     log(f"  {clean_line}", "INFO")
 
@@ -223,8 +227,8 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 proc.kill()
             return False, 0, 0
 
-        rc = proc.poll()
-        if rc == 0:
+        rc = proc.wait()
+        if rc == 0 and not error_messages and not quota_reached:
             return True, downloaded_count, skipped_count
         else:
             if quota_reached:
@@ -233,7 +237,7 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 log(f"Download mit Statuscode {rc} beendet. Details: {' | '.join(error_messages[-3:])}", "WARN")
             else:
                 log(f"Download mit Statuscode {rc} beendet.", "WARN")
-            return (False if not quota_reached else True), downloaded_count, skipped_count
+            return False, downloaded_count, skipped_count
 
     except Exception as e:
         log(f"Ausnahmefehler bei megatools: {e}", "ERROR")
@@ -275,7 +279,7 @@ def process_links(links_file, base_download_dir):
         if success:
             log(f"[{idx}/{len(links)}] Erfolgreich abgeglichen ({dl_count} neu, {skip_count} bereits aktuell).", "INFO")
         else:
-            log(f"[{idx}/{len(links)}] Hinweis: Download wurde mit Warnungen abgeschlossen.", "WARN")
+            log(f"[{idx}/{len(links)}] Abgleich fehlgeschlagen oder unvollständig; nicht alle Dateien wurden geladen.", "ERROR")
 
     log(f"=== Prüflauf beendet. Gesamt: {total_downloaded} neu heruntergeladen, {total_skipped} bereits vorhanden ===", "INFO")
     return len(links)
