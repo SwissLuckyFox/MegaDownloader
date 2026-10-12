@@ -139,7 +139,6 @@ def run_megatools_download(url, dest_dir, extra_options=None):
     """
     cmd = [
         "megatools", "dl",
-        "--no-progress",
         "--path", dest_dir
     ]
 
@@ -177,6 +176,9 @@ def run_megatools_download(url, dest_dir, extra_options=None):
     skipped_count = 0
     quota_reached = False
     error_messages = []
+    progress_file = None
+    last_progress_time = 0.0
+    last_progress_percent = None
 
     try:
         proc = subprocess.Popen(
@@ -193,12 +195,16 @@ def run_megatools_download(url, dest_dir, extra_options=None):
             if not line and proc.poll() is not None:
                 break
             if line:
-                clean_line = line.strip()
+                clean_line = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", line).strip()
                 if not clean_line:
                     continue
 
                 lower_line = clean_line.lower()
-                if "bandwidth limit" in lower_line or "transfer quota exceeded" in lower_line:
+                progress = re.match(r"^(.+):\s*(\d{1,3})%\s*-", clean_line)
+                if re.match(r"^(?:ERROR|WARNING): File already exists at .+", clean_line, re.IGNORECASE):
+                    skipped_count += 1
+                    log(f"[Vorhanden, übersprungen] {clean_line.split(':', 1)[1].strip()}", "INFO")
+                elif "bandwidth limit" in lower_line or "transfer quota exceeded" in lower_line:
                     quota_reached = True
                     log(f"[Limit] MEGA Bandbreiten-Limit erreicht: {clean_line}", "WARN")
                 elif any(marker in lower_line for marker in (
@@ -209,6 +215,20 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 elif "already downloaded" in lower_line:
                     skipped_count += 1
                     log(f"[Geprüft] {clean_line}", "DEBUG")
+                elif progress and int(progress.group(2)) <= 100:
+                    filename = progress.group(1)
+                    percent = int(progress.group(2))
+                    now = time.monotonic()
+                    if filename != progress_file:
+                        progress_file = filename
+                        last_progress_time = 0.0
+                        last_progress_percent = None
+                    if (last_progress_percent is None
+                            or now - last_progress_time >= 10
+                            or (percent == 100 and last_progress_percent != 100)):
+                        log(f"[Fortschritt] {clean_line}", "INFO")
+                        last_progress_time = now
+                        last_progress_percent = percent
                 elif "Skipping" in clean_line:
                     error_messages.append(clean_line)
                     log(f"[Nicht abgeglichen] {clean_line}", "WARN")
@@ -277,11 +297,11 @@ def process_links(links_file, base_download_dir):
         total_skipped += skip_count
 
         if success:
-            log(f"[{idx}/{len(links)}] Erfolgreich abgeglichen ({dl_count} neu, {skip_count} bereits aktuell).", "INFO")
+            log(f"[{idx}/{len(links)}] Prüflauf erfolgreich ({dl_count} Download-Abschlüsse gemeldet, {skip_count} vorhanden/übersprungen).", "INFO")
         else:
             log(f"[{idx}/{len(links)}] Abgleich fehlgeschlagen oder unvollständig; nicht alle Dateien wurden geladen.", "ERROR")
 
-    log(f"=== Prüflauf beendet. Gesamt: {total_downloaded} neu heruntergeladen, {total_skipped} bereits vorhanden ===", "INFO")
+    log(f"=== Prüflauf beendet. Gesamt: {total_downloaded} Download-Abschlüsse gemeldet, {total_skipped} vorhanden/übersprungen ===", "INFO")
     return len(links)
 
 def calculate_sleep_seconds():

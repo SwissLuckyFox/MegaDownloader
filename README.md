@@ -192,6 +192,23 @@ docker compose up -d
 
 ## Funktionsweise & Logs
 
+### Download-Fortschritt
+
+Die Fortschrittsausgabe von `megatools` ist aktiviert. Prozentmeldungen pro Datei
+werden als `[Fortschritt]` geloggt: bei der ersten Meldung einer Datei, danach
+höchstens alle zehn Sekunden sowie beim Erreichen von 100 Prozent.
+Die vom Downloader gelieferten Größen-/Geschwindigkeitsangaben werden übernommen.
+Terminal-Farbcodes werden entfernt; Fortschrittszeilen mit Wagenrücklauf werden
+als einzelne Logzeilen verarbeitet.
+
+`ERROR: File already exists at ...` wird als `[Vorhanden, übersprungen]` angezeigt.
+Das bestätigt nur die Existenz, nicht Größe, Prüfsumme oder Aktualität.
+Andere Fehler, insbesondere Entschlüsselungsfehler und Verzeichniskonflikte,
+bleiben Fehler. Ein Nicht-Null-Exit-Code wird weiterhin als Fehler behandelt.
+Während der Ordneranalyse oder ohne Fortschrittsmeldungen des Downloaders
+erscheint kein erfundener Prozentwert. Die Zähler beruhen auf Ausgabemeldungen,
+nicht auf einem vollständigen Inventar aller Dateien.
+
 ### Ungültige Links und Entschlüsselungsfehler
 
 `DEIN_LINK_1` und `SCHLUESSEL_1` sind nur Platzhalter und müssen ersetzt
