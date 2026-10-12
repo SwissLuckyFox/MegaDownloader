@@ -22,7 +22,9 @@ Megasync/
 ├── Dockerfile                      # Docker-Image Definition (Debian + megatools + Python)
 ├── sync.py                         # Synchronisations- und Scheduling-Dienst
 ├── entrypoint.sh                   # Berechtigungs- & PUID/PGID-Manager
-├── Link.txt                        # Vorlage für deine MEGA-Links
+├── .github/workflows/docker-publish.yml # Automatischer Build und GHCR-Push
+├── Link.example.txt                # Öffentliche Vorlage ohne echte Links
+├── Link.txt                        # Private Konfiguration, von Git ignoriert
 ├── docker-compose.yml              # Für Docker Compose / Portainer
 ├── megasync-unraid-template.xml    # Vorlage für das Unraid WebUI
 └── README.md                       # Anleitung
@@ -53,7 +55,69 @@ https://mega.nz/folder/GHI789rst#SCHLUESSEL3
 
 ## Installation auf Unraid
 
-### Methode 1: Image lokal auf Unraid bauen (empfohlen)
+### Methode 1: GitHub + fertiges Image (empfohlen)
+
+Repository: `https://github.com/SwissLuckyFox/MegaDownloader`
+
+Image: `ghcr.io/swissluckyfox/megadownloader:latest`
+
+#### Einmalig auf GitHub einrichten
+
+1. Erstelle auf GitHub das Repository **MegaDownloader** unter **SwissLuckyFox**.
+   Verwende den Standardbranch `main` (auch `master` wird unterstützt).
+2. Lade die Projektdateien einschließlich `.github/workflows/docker-publish.yml`,
+   `.gitignore` und `.dockerignore` hoch. **Link.txt und Zugangsdaten nicht hochladen!**
+   Die lokale `Link.txt` wird von Git ignoriert; beim manuellen Upload im Browser
+   musst du sie selbst ausschließen. Nutze `Link.example.txt` als öffentliche Vorlage.
+3. Unter **Actions** läuft nach jedem Push auf den Standardbranch der Workflow
+   **Build and publish Docker image**. Er lässt sich auch manuell starten.
+   Er baut ein `linux/amd64`-Image für übliche Intel-/AMD-Unraid-Systeme,
+   prüft Syntax und Containerstart und veröffentlicht erst danach das Image.
+4. Für die Veröffentlichung wird das automatisch bereitgestellte `GITHUB_TOKEN`
+   verwendet. Ein eigenes Registry-Passwort ist nicht erforderlich.
+5. Nach dem ersten erfolgreichen Build: Öffne auf deinem GitHub-Profil
+   **Packages → megadownloader → Package settings → Change visibility → Public**.
+   Das Paket kann anfangs privat sein, auch bei einem öffentlichen Repository.
+   Erst als öffentliches Paket kann Unraid es ohne Registry-Anmeldung laden.
+   Falls eine Organisationsrichtlinie den Push blockiert, muss dort der
+   Schreibzugriff auf Packages für GitHub Actions freigegeben werden.
+
+Das Image erhält die Tags `latest` und `sha-<vollständige Commit-ID>`.
+Änderungen am Code erzeugen ein neues Image; Änderungen an deiner privaten
+Link-Datei benötigen weder GitHub noch einen neuen Build.
+
+#### Auf Unraid installieren
+
+Verwende das unten beschriebene Unraid-Template oder die Compose-Datei.
+Ein lokaler Image-Build ist nicht nötig. In der Unraid-WebUI muss im Feld
+**Repository** stehen:
+
+```text
+ghcr.io/swissluckyfox/megadownloader:latest
+```
+
+Wähle beim Pfad **Config-Verzeichnis (Link.txt)** den gewünschten Host-Ordner,
+zum Beispiel `/mnt/user/appdata/megasync`. Er wird nach `/config` eingebunden;
+die private Datei liegt dann auf Unraid in diesem Ordner und heißt `Link.txt`.
+**Den Ordner einbinden, nicht nur die Datei:** So werden auch Änderungen durch
+Editoren erkannt, die beim Speichern die Datei ersetzen.
+
+Der Container erstellt bei Bedarf eine kommentierte Vorlage. Trage dort deine
+drei Links ein. Die Datei wird bei jedem Prüflauf neu gelesen.
+
+Für Compose lässt sich der Host-Ordner auch über eine lokale `.env` festlegen:
+
+```text
+LINKS_DIR=/mnt/user/meine-konfiguration/megasync
+```
+
+Bei Image-Updates in Unraid **Nach Updates suchen → Aktualisieren** verwenden.
+Compose aktualisiert das Image mit `docker compose pull` und
+`docker compose up -d`. GitHub aktualisiert den laufenden Unraid-Container
+nicht automatisch. Die eingebundenen Konfigurations- und Download-Ordner bleiben
+erhalten.
+
+### Alternative: Image lokal auf Unraid bauen
 
 1. Kopiere den Ordner `Megasync` auf dein Unraid-System (z. B. nach `/mnt/user/appdata/megasync-build` oder in dein Home-Verzeichnis).
 2. Öffne das Unraid-Terminal und baue das Image einmalig:
@@ -84,15 +148,16 @@ https://mega.nz/folder/GHI789rst#SCHLUESSEL3
 
 ### Methode 2: Unraid Docker-WebUI (Template)
 
-1. Kopiere die Datei `megasync-unraid-template.xml` in das Unraid-Vorlagenverzeichnis auf dem Flash-Laufwerk:
+1. Warte auf den erfolgreichen GitHub-Actions-Build und stelle das GHCR-Paket auf öffentlich.
+2. Kopiere die Datei `megasync-unraid-template.xml` in das Unraid-Vorlagenverzeichnis auf dem Flash-Laufwerk:
    `/boot/config/plugins/dockerMan/templates-user/my-megasync.xml`
-2. Gehe im Unraid WebUI auf den Reiter **Docker** -> **Container hinzufügen**.
-3. Wähle oben unter **Vorlage** `megasync` aus.
-4. Alle Pfade und Variablen sind bereits vorkonfiguriert:
+3. Gehe im Unraid WebUI auf den Reiter **Docker** -> **Container hinzufügen**.
+4. Wähle oben unter **Vorlage** `megasync` aus.
+5. Alle Pfade und Variablen sind bereits vorkonfiguriert:
    * **Config-Verzeichnis:** `/mnt/user/appdata/megasync` (hier liegt `Link.txt`)
    * **Download-Verzeichnis:** `/mnt/user/downloads/megasync` (hier landen die Downloads)
    * **Tägliche Prüfzeit:** z. B. `03:00`
-5. Klicke auf **Anwenden**.
+6. Klicke auf **Anwenden**.
 
 ---
 
@@ -147,4 +212,3 @@ Im Unraid-WebUI kannst du jederzeit auf das Icon des Containers klicken und **Pr
 [2026-10-12 21:30:10] [INFO] === Prüflauf beendet. Gesamt: 1 neu heruntergeladen, 44 bereits vorhanden ===
 [2026-10-12 21:30:10] [INFO] Nächster täglicher Prüflauf um 03:00:00 Uhr (in 5h 30m).
 ```
-

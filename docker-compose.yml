@@ -1,9 +1,6 @@
-version: '3.8'
-
 services:
   megasync:
-    build: .
-    image: megasync:latest
+    image: ghcr.io/swissluckyfox/megadownloader:latest
     container_name: megasync
     restart: unless-stopped
     environment:
@@ -23,7 +20,7 @@ services:
       # - MEGA_PASSWORD=dein-passwort
     volumes:
       # Verzeichnis für die Link.txt Konfiguration:
-      - /mnt/user/appdata/megasync:/config
+      - ${LINKS_DIR:-/mnt/user/appdata/megasync}:/config
       # ODER direkte Datei-Bindung für Link.txt:
       # - /mnt/user/appdata/megasync/Link.txt:/config/Link.txt
       # Zielverzeichnis für heruntergeladene Dateien:

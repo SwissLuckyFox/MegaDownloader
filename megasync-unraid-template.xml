@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>megasync</Name>
-  <Repository>megasync:latest</Repository>
-  <Registry/>
+  <Repository>ghcr.io/swissluckyfox/megadownloader:latest</Repository>
+  <Registry>https://github.com/SwissLuckyFox/MegaDownloader/pkgs/container/megadownloader</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support/>
-  <Project/>
+  <Project>https://github.com/SwissLuckyFox/MegaDownloader</Project>
   <Overview>Prüft täglich konfigurierte MEGA-Links, gleicht neue Dateien ab und lädt diese automatisch herunter. Die Links werden in einer 'Link.txt' Datei auf Unraid gespeichert und bei jedem Suchlauf frisch eingelesen.</Overview>
   <Category>Backup: Tools:</Category>
   <WebUI/>

@@ -1,0 +1,5 @@
+# Ein MEGA-Link pro Zeile. Diese Beispiele durch echte Links ersetzen.
+# Die private Datei auf Unraid muss Link.txt heissen.
+# https://mega.nz/folder/DEIN_LINK_1#SCHLUESSEL_1 | Quelle1
+# https://mega.nz/folder/DEIN_LINK_2#SCHLUESSEL_2 | Quelle2
+# https://mega.nz/folder/DEIN_LINK_3#SCHLUESSEL_3 | Quelle3
