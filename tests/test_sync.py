@@ -43,6 +43,13 @@ class DownloadOutputTests(unittest.TestCase):
             "Transfer quota exceeded\n"
         ), (False, 0, 0))
 
+    def test_quota_509_detected_as_limit(self):
+        self.assertEqual(self.run_download(
+            "WARNING: chunk download failed (Server returned 509 (over quota)), re-trying after 256 seconds\n"
+        ), (False, 0, 0))
+        self.assertTrue(any("[Limit]" in line for line in self.messages))
+        self.assertFalse(any("[Fehler]" in line for line in self.messages))
+
     def test_known_success_messages(self):
         self.assertEqual(self.run_download(
             "already downloaded: existing.txt\nDownloaded: new.txt\n"

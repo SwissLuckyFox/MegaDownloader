@@ -204,7 +204,7 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 if re.match(r"^(?:ERROR|WARNING): File already exists at .+", clean_line, re.IGNORECASE):
                     skipped_count += 1
                     log(f"[Vorhanden, übersprungen] {clean_line.split(':', 1)[1].strip()}", "INFO")
-                elif "bandwidth limit" in lower_line or "transfer quota exceeded" in lower_line:
+                elif any(q in lower_line for q in ("bandwidth limit", "transfer quota exceeded", "over quota", "509")):
                     quota_reached = True
                     log(f"[Limit] MEGA Bandbreiten-Limit erreicht: {clean_line}", "WARN")
                 elif any(marker in lower_line for marker in (
