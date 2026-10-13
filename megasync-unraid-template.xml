@@ -31,6 +31,6 @@
   <Config Name="PGID" Target="PGID" Default="100" Description="Unraid Gruppen-ID (Standard: 100 für users)" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
   <Config Name="UMASK" Target="UMASK" Default="022" Description="Dateiberechtigungsmaske" Type="Variable" Display="advanced" Required="false" Mask="false">022</Config>
   <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Description="Zeitzone für korrekte Uhrzeiten" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
-  <Config Name="MEGA Benutzername (optional)" Target="MEGA_USERNAME" Default="" Description="E-Mail-Adresse deines MEGA-Accounts (optional für höheres Download-Limit)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
-  <Config Name="MEGA Passwort (optional)" Target="MEGA_PASSWORD" Default="" Description="Passwort deines MEGA-Accounts (optional)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="MEGA Benutzername (optional)" Target="MEGA_USERNAME" Default="" Description="E-Mail-Adresse deines MEGA-Accounts (optional für höheres Download-Limit)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="MEGA Passwort (optional)" Target="MEGA_PASSWORD" Default="" Description="Passwort deines MEGA-Accounts (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
 </Container>
