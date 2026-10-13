@@ -13,7 +13,7 @@
   <Category>Backup: Tools:</Category>
   <WebUI/>
   <TemplateURL/>
-  <Icon>https://mega.io/wp-content/themes/mega/assets/images/mega-icon.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/SwissLuckyFox/MegaDownloader/main/icon.png</Icon>
   <ExtraParams>--restart unless-stopped</ExtraParams>
   <PostArgs/>
   <CPUset/>

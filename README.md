@@ -1,4 +1,4 @@
-# MegaSync für Unraid (Docker)
+# <img src="https://raw.githubusercontent.com/SwissLuckyFox/MegaDownloader/main/icon.png" width="48" height="48" alt="MegaSync Logo" align="center" /> MegaSync für Unraid (Docker)
 
 Ein automatisierter, schlanker Docker-Container für Unraid, der konfigurierte **MEGA-Links täglich prüft**, bestehende Dateien abgleicht und **nur neue oder veränderte Dateien herunterlädt**.
 
@@ -25,6 +25,7 @@ Megasync/
 ├── .github/workflows/docker-publish.yml # Automatischer Build und GHCR-Push
 ├── Link.example.txt                # Öffentliche Vorlage ohne echte Links
 ├── Link.txt                        # Private Konfiguration, von Git ignoriert
+├── icon.png                        # Container-Icon für Unraid WebUI
 ├── docker-compose.yml              # Für Docker Compose / Portainer
 ├── megasync-unraid-template.xml    # Vorlage für das Unraid WebUI
 └── README.md                       # Anleitung
