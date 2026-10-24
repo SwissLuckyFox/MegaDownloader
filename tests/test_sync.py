@@ -343,7 +343,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((root / "Icon.png").read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
         template = ET.parse(root / "megasync-unraid-template.xml").getroot()
         self.assertEqual(template.findtext("Icon"),
-                         "https://raw.githubusercontent.com/SwissLuckyFox/Megasync/main/Icon.png")
+                         "https://raw.githubusercontent.com/SwissLuckyFox/MegaDownloader/main/Icon.png")
         config = {item.attrib["Target"]: item for item in template.findall("Config")}
         self.assertEqual(config["TELEGRAM_BOT_TOKEN"].attrib["Mask"], "true")
         self.assertIn("TELEGRAM_CHAT_ID", config)

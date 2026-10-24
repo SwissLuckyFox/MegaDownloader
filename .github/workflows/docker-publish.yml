@@ -75,9 +75,39 @@ jobs:
           docker stop --time 10 megasync-smoke
           test "$(docker inspect --format '{{.State.ExitCode}}' megasync-smoke)" = 0
 
+      # Unraids Update-Prüfung fragt nur Docker-v2-Manifeste ab; reine OCI-Manifeste
+      # erscheinen dort als "nicht verfügbar". Daher ohne OCI-Medientypen und
+      # ohne Attestierungen (die einen Manifest-Index erzwingen) veröffentlichen.
+      # Der Build nutzt den Cache des getesteten Builds.
       - name: Publish tested image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          outputs: type=registry,oci-mediatypes=false
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Verify Docker v2 manifest for Unraid update checks
         env:
           IMAGE: ${{ steps.image.outputs.name }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker push "$IMAGE:sha-${{ github.sha }}"
-          docker push "$IMAGE:latest"
+          set -eu
+          repo="${IMAGE#ghcr.io/}"
+          registry_token=$(printf '%s' "${{ github.actor }}:$TOKEN" | base64 -w0)
+          bearer=$(curl -fsS -H "Authorization: Basic $registry_token" \
+            "https://ghcr.io/token?scope=repository:$repo:pull" | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+          content_type=$(curl -fsS -o /dev/null -w '%{content_type}' \
+            -H "Authorization: Bearer $bearer" \
+            -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+            "https://ghcr.io/v2/$repo/manifests/latest")
+          echo "Manifest content type: $content_type"
+          test "$content_type" = "application/vnd.docker.distribution.manifest.v2+json"
