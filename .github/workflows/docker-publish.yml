@@ -64,6 +64,7 @@ jobs:
           set -eu
           docker run --rm --entrypoint sh "$IMAGE" -n /app/entrypoint.sh
           docker run --rm --entrypoint python3 "$IMAGE" -m py_compile /app/sync.py
+          docker run --rm --entrypoint megatools "$IMAGE" dl --version | grep -F 'megatools 1.11.5 -'
           docker run --rm --entrypoint megatools "$IMAGE" dl --help
           docker run -d --name megasync-smoke -e RUN_ON_STARTUP=false "$IMAGE"
           trap 'docker logs megasync-smoke; docker rm -fv megasync-smoke' EXIT

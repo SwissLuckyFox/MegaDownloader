@@ -250,7 +250,12 @@ als einzelne Logzeilen verarbeitet.
 `ERROR: File already exists at ...` wird als `[Vorhanden, übersprungen]` angezeigt.
 Das bestätigt nur die Existenz, nicht Größe, Prüfsumme oder Aktualität.
 Andere Fehler, insbesondere Entschlüsselungsfehler und Verzeichniskonflikte,
-bleiben Fehler. Ein Nicht-Null-Exit-Code wird weiterhin als Fehler behandelt.
+bleiben Fehler. `megatools` setzt auch bei vorhandenen Dateien Exit-Code 1.
+Dieser wird nur dann als unkritisch behandelt, wenn mindestens eine explizite
+`File already exists at ...`-Meldung und keine weiteren erkannten Fehler oder
+Transferlimits vorliegen. Das wird im Log ausdrücklich erklärt und verhindert
+eine falsche Telegram-Fehlermeldung allein wegen vorhandener Dateien.
+Exit-Code 1 ohne diese Meldung und alle anderen Nicht-Null-Exit-Codes bleiben Fehler.
 Während der Ordneranalyse oder ohne Fortschrittsmeldungen des Downloaders
 erscheint kein erfundener Prozentwert. Die Zähler beruhen auf Ausgabemeldungen,
 nicht auf einem vollständigen Inventar aller Dateien.
@@ -269,6 +274,25 @@ Falls nicht, den Link bzw. Schlüssel beim Freigebenden prüfen lassen.
 Falls der Webclient funktioniert, müssen Version und Kompatibilität von
 `megatools` untersucht werden. Die Logauswertung repariert keine Dateischlüssel.
 Echte Links und Schlüssel nicht in öffentliche Issues oder Logs hochladen.
+
+Das Container-Image baut **megatools 1.11.5** aus dem unveränderten
+[Debian-Quellarchiv](https://deb.debian.org/debian/pool/main/m/megatools/)
+mit fest geprüfter SHA-256-Prüfsumme. Die Debian-Basis bleibt Bookworm;
+Build-Werkzeuge landen nicht im Laufzeit-Image. Lizenz, Versionshinweise und
+Quellarchiv liegen im Container unter `/usr/local/share/doc/megatools/`.
+Seit 1.11.1 nennt das Projekt Korrekturen für Ordnerdownloads; das garantiert
+jedoch nicht die Behebung jedes Entschlüsselungsfehlers.
+
+Nach Veröffentlichung des neuen Images den Container in Unraid aktualisieren
+und die installierte Version prüfen:
+
+```bash
+docker exec megasync megatools dl --version
+```
+
+Die Ausgabe muss `megatools 1.11.5` enthalten. Anschließend dieselben Links
+erneut prüfen und dabei die bestehenden Download- und Konfigurationsordner
+beibehalten. Vorhandene Dateien weder löschen noch ungeprüft überschreiben.
 
 Die Ausgabezählung erkennt nur eindeutige Meldungen (`already downloaded`,
 `Downloaded`). Sie ist kein vollständiger Inhaltsvergleich und erkennt keine

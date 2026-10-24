@@ -77,6 +77,47 @@ class DownloadOutputTests(unittest.TestCase):
         self.assertTrue(any("[Vorhanden, übersprungen]" in line for line in self.messages))
         self.assertFalse(any("[Fehler]" in line for line in self.messages))
 
+    def test_exit_one_with_existing_files_is_not_a_download_failure(self):
+        self.assertEqual(self.run_download(
+            "ERROR: File already exists at /downloads/one.txt\n"
+            "ERROR: File already exists at /downloads/two.txt\n", 1
+        ), (True, 0, 2))
+        self.assertTrue(any("Statuscode 1" in line and "vorhandener Dateien" in line
+                            for line in self.messages))
+
+    def test_exit_one_with_downloads_and_existing_files(self):
+        self.assertEqual(self.run_download(
+            "Downloaded: new.txt\n"
+            "ERROR: File already exists at /downloads/existing.txt\n", 1
+        ), (True, 1, 1))
+
+    def test_other_exit_codes_with_existing_files_remain_failures(self):
+        for code in (2, -15):
+            with self.subTest(code=code):
+                self.assertEqual(self.run_download(
+                    "ERROR: File already exists at /downloads/existing.txt\n", code
+                ), (False, 0, 1))
+
+    def test_exit_one_without_known_existing_file_error_remains_failure(self):
+        self.assertEqual(self.run_download(
+            "already downloaded: existing.txt\n", 1
+        ), (False, 0, 1))
+
+    def test_existing_files_do_not_hide_other_failures_with_exit_one(self):
+        for error in (
+            "WARNING: Skipping FS node EXAMPLE because key can't be decrypted",
+            "CRITICAL: b64_aes128_decrypt: assertion 'key != NULL' failed",
+            "Transfer quota exceeded",
+            "ERROR: Can't create local directory /downloads/example: file exists",
+            "ERROR: Download failed for new.txt: Network error",
+            "Skipping FS node EXAMPLE",
+        ):
+            with self.subTest(error=error):
+                self.assertEqual(self.run_download(
+                    "ERROR: File already exists at /downloads/existing.txt\n"
+                    + error + "\n", 1
+                ), (False, 0, 1))
+
     def test_existing_directory_conflict_stays_an_error(self):
         self.assertEqual(self.run_download(
             "ERROR: Can't create local directory /downloads/example: file exists\n"
@@ -261,6 +302,29 @@ class ScanNotificationTests(unittest.TestCase):
         self.run_scan([(True, 0, 5)])
         self.assertIn("0 Download-Abschlüsse", self.messages[-1])
         self.assertIn("0 Links fehlgeschlagen", self.messages[-1])
+
+    def test_existing_file_exit_one_does_not_send_telegram_failure(self):
+        proc = Mock()
+        proc.stdout = io.StringIO(
+            "ERROR: File already exists at /downloads/existing.txt\n"
+        )
+        proc.poll.return_value = 1
+        proc.wait.return_value = 1
+        with tempfile.TemporaryDirectory() as download_dir, \
+                patch.dict(sync.os.environ, {}, clear=True), \
+                patch.object(sync, "read_links", return_value=[
+                    {"url": "https://mega.nz/folder/EXAMPLE#SECRET", "target_subdir": None}
+                ]), \
+                patch.object(sync.subprocess, "Popen", return_value=proc), \
+                patch.object(sync, "TelegramNotifier") as notifier_class, \
+                patch.object(sync, "log"), \
+                patch.object(sync, "running", True):
+            self.assertEqual(sync.process_links("unused.txt", download_dir), 1)
+        messages = [call.args[0] for call in notifier_class.return_value.send.call_args_list]
+        self.assertEqual(len(messages), 2)
+        self.assertIn("1 vorhanden/übersprungen", messages[-1])
+        self.assertIn("0 Links fehlgeschlagen", messages[-1])
+        self.assertFalse(any("Link 1/1 fehlgeschlagen" in msg for msg in messages))
 
     def test_empty_configuration_does_not_send_messages(self):
         self.assertEqual(self.run_scan([]), 0)

@@ -1,16 +1,46 @@
+FROM debian:bookworm-slim AS megatools-build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    meson \
+    ninja-build \
+    pkg-config \
+    libglib2.0-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN curl --fail --show-error --location \
+      https://deb.debian.org/debian/pool/main/m/megatools/megatools_1.11.5.orig.tar.gz \
+      --output megatools.tar.gz \
+    && echo "51f78a03748a64b1066ce28a2ca75d98dbef5f00fe9789dc894827f9a913b362  megatools.tar.gz" | sha256sum --check - \
+    && tar -xzf megatools.tar.gz \
+    && meson setup build megatools-1.11.5.20250706 --prefix=/usr/local -Dman=false \
+    && meson compile -C build \
+    && DESTDIR=/stage meson install -C build \
+    && cp megatools.tar.gz /stage/usr/local/share/doc/megatools/source.tar.gz
+
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="MegaSync"
 LABEL description="Täglicher Mega-Downloader und Abgleich für Unraid Docker"
 
-# Systempakete installieren: megatools, gosu (für Unraid PUID/PGID), ca-certificates, tzdata
+# Laufzeitbibliotheken für megatools; Compiler bleiben im Build-Stage.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    megatools \
+    libglib2.0-0 \
+    libcurl4 \
+    libssl3 \
     gosu \
     ca-certificates \
     tzdata \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=megatools-build /stage/usr/local/ /usr/local/
+RUN megatools dl --version | grep -F "megatools 1.11.5 -"
 
 WORKDIR /app
 

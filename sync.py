@@ -209,6 +209,7 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
 
     downloaded_count = 0
     skipped_count = 0
+    existing_file_errors = 0
     quota_reached = False
     error_messages = []
     progress_file = None
@@ -240,6 +241,7 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
                 progress = re.match(r"^(.+):\s*(\d{1,3})%\s*-", clean_line)
                 if re.match(r"^(?:ERROR|WARNING): File already exists at .+", clean_line, re.IGNORECASE):
                     skipped_count += 1
+                    existing_file_errors += 1
                     log(f"[Vorhanden, übersprungen] {clean_line.split(':', 1)[1].strip()}", "INFO")
                 elif any(q in lower_line for q in ("bandwidth limit", "transfer quota exceeded", "over quota", "509")):
                     if not quota_reached:
@@ -297,7 +299,11 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
             return False, 0, 0
 
         rc = proc.wait()
-        if rc == 0 and not error_messages and not quota_reached:
+        existing_files_only = rc == 1 and existing_file_errors > 0
+        if (rc == 0 or existing_files_only) and not error_messages and not quota_reached:
+            if existing_files_only:
+                log("megatools meldet Statuscode 1 wegen vorhandener Dateien; keine weiteren Fehler gemeldet. "
+                    "Vorhandene Dateien wurden nicht auf Vollständigkeit geprüft.", "INFO")
             return True, downloaded_count, skipped_count
         else:
             if quota_reached:
