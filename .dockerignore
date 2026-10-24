@@ -2,3 +2,4 @@
 !Dockerfile
 !sync.py
 !entrypoint.sh
+!patches/

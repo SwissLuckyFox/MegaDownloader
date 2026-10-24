@@ -283,6 +283,13 @@ Quellarchiv liegen im Container unter `/usr/local/share/doc/megatools/`.
 Seit 1.11.1 nennt das Projekt Korrekturen für Ordnerdownloads; das garantiert
 jedoch nicht die Behebung jedes Entschlüsselungsfehlers.
 
+Zusätzlich wird `patches/megatools-node-key-lookup.patch` angewendet: Besitzt
+eine Datei in verschachtelten Freigaben mehrere Schlüsseleinträge, überschrieb
+`megatools` einen bereits gefundenen Freigabeschlüssel mit einem späteren,
+unbekannten Eintrag. Das führte zu `assertion 'key != NULL' failed` und
+`key can't be decrypted`, obwohl der Download im MEGA-Webclient funktioniert.
+Der Fehler besteht auch noch im aktuellen Upstream-Code.
+
 Nach Veröffentlichung des neuen Images den Container in Unraid aktualisieren
 und die installierte Version prüfen:
 

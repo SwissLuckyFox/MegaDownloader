@@ -348,6 +348,15 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(config["TELEGRAM_BOT_TOKEN"].attrib["Mask"], "true")
         self.assertIn("TELEGRAM_CHAT_ID", config)
 
+    def test_megatools_node_key_patch_is_built_into_image(self):
+        root = Path(__file__).resolve().parents[1]
+        patch_text = (root / "patches" / "megatools-node-key-lookup.patch").read_text()
+        self.assertIn("+\t\t\t\tbreak;", patch_text)
+        dockerfile = (root / "Dockerfile").read_text()
+        self.assertIn("patch -d megatools-1.11.5.20250706 -p1 < patches/megatools-node-key-lookup.patch",
+                      dockerfile)
+        self.assertIn("!patches/", (root / ".dockerignore").read_text().splitlines())
+
 
 if __name__ == "__main__":
     unittest.main()

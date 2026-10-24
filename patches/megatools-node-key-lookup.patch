@@ -1,0 +1,17 @@
+--- a/lib/mega.c
++++ b/lib/mega.c
+@@ -1924,9 +1924,12 @@
+ 				break;
+ 			}
+ 
+-			node_share_key = g_hash_table_lookup(s->share_keys, key_handle);
+-			if (node_share_key) {
++			// Don't let a later unknown share handle overwrite an already found key.
++			gchar *found_share_key = g_hash_table_lookup(s->share_keys, key_handle);
++			if (found_share_key) {
+ 				encrypted_node_key = g_strdup(key_value);
++				node_share_key = found_share_key;
++				break;
+ 			}
+ 		}
+ 	}
