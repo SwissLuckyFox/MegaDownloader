@@ -169,6 +169,29 @@ class DownloadOutputTests(unittest.TestCase):
         self.assertTrue(any("Download abgeschlossen" in msg for msg in messages))
         self.assertFalse(any("https://mega.nz" in msg for msg in messages))
 
+    def test_megatools_1_11_5_folder_download_notifies_start_and_completion(self):
+        self.assertEqual(self.run_download(
+            "F /downloads/NORMAL/Clip/Grimm3D_Clip.mp4\n"
+            "Grimm3D_Clip.mp4: 0.00% - 0 bytes of 135.0 MiB\n"
+            "Grimm3D_Clip.mp4: 5.41% - 7.3 MiB (7652680 bytes) of 135.0 MiB (7.3 MiB/s)\n"
+            "Grimm3D_Clip.mp4: 100.00% - done 135.0 MiB (avg. 8.0 MiB/s)\n",
+            clock=[100, 101],
+        ), (True, 1, 0))
+        messages = [call.args[0] for call in self.notifier.send.call_args_list]
+        self.assertEqual(messages[0], "MegaSync: Download gestartet: Grimm3D_Clip.mp4")
+        self.assertFalse(any("Neue oder unvollständige" in msg for msg in messages))
+        self.assertTrue(any("Download-Fortschritt" in msg and "0.00%" in msg for msg in messages))
+        self.assertEqual(sum("Download abgeschlossen" in msg for msg in messages), 1)
+        self.assertIn("[Download gestartet] /downloads/NORMAL/Clip/Grimm3D_Clip.mp4", self.messages)
+
+    def test_file_link_completion_is_counted_once(self):
+        self.assertEqual(self.run_download(
+            "one.bin: 100.00% - done 1.0 MiB (avg. 1.0 MiB/s)\n"
+            "Downloaded one.bin\n"
+        ), (True, 1, 0))
+        messages = [call.args[0] for call in self.notifier.send.call_args_list]
+        self.assertEqual(sum("Download abgeschlossen" in msg for msg in messages), 1)
+
     def test_existing_files_do_not_trigger_new_download_alerts(self):
         self.run_download(
             "ERROR: File already exists at /downloads/existing.txt\n"

@@ -217,6 +217,7 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
     last_progress_percent = None
     last_telegram_time = None
     last_telegram_percent = None
+    completed_file = None
 
     try:
         proc = subprocess.Popen(
@@ -238,11 +239,50 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
                     continue
 
                 lower_line = clean_line.lower()
-                progress = re.match(r"^(.+):\s*(\d{1,3})%\s*-", clean_line)
+                progress = re.match(r"^(.+?):\s*(\d{1,3}(?:\.\d+)?)%\s*-\s*(done\b)?", clean_line)
+                file_start = re.match(r"^F (/.+)$", clean_line)
                 if re.match(r"^(?:ERROR|WARNING): File already exists at .+", clean_line, re.IGNORECASE):
                     skipped_count += 1
                     existing_file_errors += 1
                     log(f"[Vorhanden, übersprungen] {clean_line.split(':', 1)[1].strip()}", "INFO")
+                elif file_start:
+                    progress_file = os.path.basename(file_start.group(1))
+                    last_progress_time = 0.0
+                    last_progress_percent = None
+                    last_telegram_time = None
+                    last_telegram_percent = None
+                    completed_file = None
+                    log(f"[Download gestartet] {file_start.group(1)}", "INFO")
+                    notifier.send(f"MegaSync: Download gestartet: {progress_file}")
+                elif progress and progress.group(3) and float(progress.group(2)) <= 100:
+                    downloaded_count += 1
+                    completed_file = progress.group(1)
+                    log(f"[Neu geladen] {clean_line}", "INFO")
+                    notifier.send(f"MegaSync: Download abgeschlossen: {clean_line}")
+                elif progress and float(progress.group(2)) <= 100:
+                    filename = progress.group(1)
+                    percent = float(progress.group(2))
+                    now = time.monotonic()
+                    if filename != progress_file:
+                        progress_file = filename
+                        last_progress_time = 0.0
+                        last_progress_percent = None
+                        last_telegram_time = None
+                        last_telegram_percent = None
+                        completed_file = None
+                        notifier.send(f"MegaSync: Neue oder unvollständige Datei wird heruntergeladen: {filename}")
+                    if (last_telegram_time is None
+                            or now - last_telegram_time >= 60
+                            or (percent >= 100 and last_telegram_percent != percent)):
+                        notifier.send(f"MegaSync: Download-Fortschritt: {clean_line}")
+                        last_telegram_time = now
+                        last_telegram_percent = percent
+                    if (last_progress_percent is None
+                            or now - last_progress_time >= 10
+                            or (percent >= 100 and last_progress_percent != percent)):
+                        log(f"[Fortschritt] {clean_line}", "INFO")
+                        last_progress_time = now
+                        last_progress_percent = percent
                 elif any(q in lower_line for q in ("bandwidth limit", "transfer quota exceeded", "over quota", "509")):
                     if not quota_reached:
                         notifier.send("MegaSync: MEGA-Transferlimit erreicht. Der Download wird im nächsten Prüflauf erneut versucht.")
@@ -256,36 +296,18 @@ def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
                 elif "already downloaded" in lower_line:
                     skipped_count += 1
                     log(f"[Geprüft] {clean_line}", "DEBUG")
-                elif progress and int(progress.group(2)) <= 100:
-                    filename = progress.group(1)
-                    percent = int(progress.group(2))
-                    now = time.monotonic()
-                    if filename != progress_file:
-                        progress_file = filename
-                        last_progress_time = 0.0
-                        last_progress_percent = None
-                        last_telegram_time = None
-                        last_telegram_percent = None
-                        notifier.send(f"MegaSync: Neue oder unvollständige Datei wird heruntergeladen: {filename}")
-                    if (last_telegram_time is None
-                            or now - last_telegram_time >= 60
-                            or (percent == 100 and last_telegram_percent != 100)):
-                        notifier.send(f"MegaSync: Download-Fortschritt: {clean_line}")
-                        last_telegram_time = now
-                        last_telegram_percent = percent
-                    if (last_progress_percent is None
-                            or now - last_progress_time >= 10
-                            or (percent == 100 and last_progress_percent != 100)):
-                        log(f"[Fortschritt] {clean_line}", "INFO")
-                        last_progress_time = now
-                        last_progress_percent = percent
                 elif "Skipping" in clean_line:
                     error_messages.append(clean_line)
                     log(f"[Nicht abgeglichen] {clean_line}", "WARN")
                 elif "Downloaded" in clean_line:
-                    downloaded_count += 1
-                    log(f"[Neu geladen] {clean_line}", "INFO")
-                    notifier.send(f"MegaSync: Download abgeschlossen: {clean_line}")
+                    if completed_file is not None:
+                        # Einzeldatei-Links melden nach der "done"-Zeile zusätzlich "Downloaded".
+                        log(f"  {clean_line}", "DEBUG")
+                        completed_file = None
+                    else:
+                        downloaded_count += 1
+                        log(f"[Neu geladen] {clean_line}", "INFO")
+                        notifier.send(f"MegaSync: Download abgeschlossen: {clean_line}")
                 else:
                     log(f"  {clean_line}", "INFO")
 

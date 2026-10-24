@@ -220,9 +220,10 @@ docker compose up -d
 Ohne beide Werte ist Telegram deaktiviert; eine unvollständige Konfiguration
 erzeugt eine Warnung. Pro Prüflauf mit aktiven Links werden Start und Zusammenfassung
 gemeldet, außerdem fehlgeschlagene/unvollständige Links und erreichte Transferlimits.
-Bei der ersten Fortschrittsmeldung einer Datei wird ein neuer bzw. fortgesetzter
-Download gemeldet, danach der Fortschritt höchstens alle 60 Sekunden pro Datei
-sowie bei 100 Prozent. Explizite `Downloaded`-Meldungen werden ebenfalls weitergeleitet.
+Beginnt `megatools` eine Datei (`F /pfad/datei`), wird „Download gestartet“
+gemeldet, danach der Fortschritt höchstens alle 60 Sekunden pro Datei. Die
+Abschlusszeile (`datei: 100.00% - done …`) bzw. bei Einzeldatei-Links
+`Downloaded …` wird als „Download abgeschlossen“ gemeldet.
 Es gibt keine separate Vorab-Inventur: Neue Dateien werden erst erkannt, wenn
 `megatools` sie herunterlädt; ohne dessen Fortschrittsausgabe sind keine
 Prozentmeldungen möglich.
