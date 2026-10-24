@@ -23,7 +23,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Test download output handling
+      - name: Test download output and Telegram notifications
         run: python3 -m unittest discover -s tests -v
 
       - name: Determine image name

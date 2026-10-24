@@ -11,7 +11,10 @@ import time
 import signal
 import subprocess
 import re
+import json
 from datetime import datetime, timedelta
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 # Globale Variable für den Abbruch (SIGTERM / SIGINT)
 running = True
@@ -28,6 +31,36 @@ signal.signal(signal.SIGTERM, signal_handler)
 def log(message, level="INFO"):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] [{level}] {message}", flush=True)
+
+class TelegramNotifier:
+    def __init__(self):
+        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+        if bool(self.token) != bool(self.chat_id):
+            log("Telegram deaktiviert: TELEGRAM_BOT_TOKEN und TELEGRAM_CHAT_ID müssen beide gesetzt sein.", "WARN")
+
+    def send(self, message):
+        if not self.token or not self.chat_id:
+            return
+        # 2000 Unicode-Zeichen bleiben auch mit UTF-16-Surrogatpaaren unter dem API-Limit.
+        text = message if len(message) <= 2000 else message[:1997] + "..."
+        try:
+            request = Request(
+                f"https://api.telegram.org/bot{self.token}/sendMessage",
+                data=json.dumps({"chat_id": self.chat_id, "text": text}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urlopen(request, timeout=10) as response:
+                result = json.load(response)
+            if not isinstance(result, dict) or result.get("ok") is not True:
+                log("Telegram-Nachricht fehlgeschlagen: API meldet keinen Erfolg.", "WARN")
+        except HTTPError as exc:
+            exc.close()
+            log(f"Telegram-Nachricht fehlgeschlagen (HTTP {exc.code}).", "WARN")
+        except (URLError, OSError, ValueError):
+            # Exception-Texte können die Request-URL mit dem Bot-Token enthalten.
+            log("Telegram-Nachricht fehlgeschlagen: Netzwerkfehler oder ungültige API-Antwort.", "WARN")
 
 def parse_time_duration(val_str, default=86400):
     """Parst Zeitangaben wie '86400', '24h', '1d', '30m' in Sekunden."""
@@ -132,11 +165,13 @@ def read_links(file_path):
 
     return links
 
-def run_megatools_download(url, dest_dir, extra_options=None):
+def run_megatools_download(url, dest_dir, extra_options=None, notifier=None):
     """
     Führt 'megatools dl' aus.
     megatools prüft vorhandene Dateien automatisch und lädt nur neue / unvollständige Dateien herunter.
     """
+    if notifier is None:
+        notifier = TelegramNotifier()
     cmd = [
         "megatools", "dl",
         "--path", dest_dir
@@ -179,6 +214,8 @@ def run_megatools_download(url, dest_dir, extra_options=None):
     progress_file = None
     last_progress_time = 0.0
     last_progress_percent = None
+    last_telegram_time = None
+    last_telegram_percent = None
 
     try:
         proc = subprocess.Popen(
@@ -205,6 +242,8 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                     skipped_count += 1
                     log(f"[Vorhanden, übersprungen] {clean_line.split(':', 1)[1].strip()}", "INFO")
                 elif any(q in lower_line for q in ("bandwidth limit", "transfer quota exceeded", "over quota", "509")):
+                    if not quota_reached:
+                        notifier.send("MegaSync: MEGA-Transferlimit erreicht. Der Download wird im nächsten Prüflauf erneut versucht.")
                     quota_reached = True
                     log(f"[Limit] MEGA Bandbreiten-Limit erreicht: {clean_line}", "WARN")
                 elif any(marker in lower_line for marker in (
@@ -223,6 +262,15 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                         progress_file = filename
                         last_progress_time = 0.0
                         last_progress_percent = None
+                        last_telegram_time = None
+                        last_telegram_percent = None
+                        notifier.send(f"MegaSync: Neue oder unvollständige Datei wird heruntergeladen: {filename}")
+                    if (last_telegram_time is None
+                            or now - last_telegram_time >= 60
+                            or (percent == 100 and last_telegram_percent != 100)):
+                        notifier.send(f"MegaSync: Download-Fortschritt: {clean_line}")
+                        last_telegram_time = now
+                        last_telegram_percent = percent
                     if (last_progress_percent is None
                             or now - last_progress_time >= 10
                             or (percent == 100 and last_progress_percent != 100)):
@@ -235,6 +283,7 @@ def run_megatools_download(url, dest_dir, extra_options=None):
                 elif "Downloaded" in clean_line:
                     downloaded_count += 1
                     log(f"[Neu geladen] {clean_line}", "INFO")
+                    notifier.send(f"MegaSync: Download abgeschlossen: {clean_line}")
                 else:
                     log(f"  {clean_line}", "INFO")
 
@@ -275,9 +324,12 @@ def process_links(links_file, base_download_dir):
 
     log(f"{len(links)} Link(s) gefunden. Starte Abgleich mit '{base_download_dir}'...", "INFO")
     os.makedirs(base_download_dir, exist_ok=True)
+    notifier = TelegramNotifier()
+    notifier.send(f"MegaSync: Prüflauf gestartet ({len(links)} Links).")
 
     total_downloaded = 0
     total_skipped = 0
+    total_failed = 0
 
     for idx, item in enumerate(links, start=1):
         if not running:
@@ -292,16 +344,23 @@ def process_links(links_file, base_download_dir):
         target_display = f"/{subdir}" if subdir else "/"
         log(f"[{idx}/{len(links)}] Prüfe: {url} -> Ziel: {target_display}", "INFO")
 
-        success, dl_count, skip_count = run_megatools_download(url, dest)
+        success, dl_count, skip_count = run_megatools_download(url, dest, notifier=notifier)
         total_downloaded += dl_count
         total_skipped += skip_count
 
         if success:
             log(f"[{idx}/{len(links)}] Prüflauf erfolgreich ({dl_count} Download-Abschlüsse gemeldet, {skip_count} vorhanden/übersprungen).", "INFO")
         else:
+            total_failed += 1
             log(f"[{idx}/{len(links)}] Abgleich fehlgeschlagen oder unvollständig; nicht alle Dateien wurden geladen.", "ERROR")
+            notifier.send(f"MegaSync: Link {idx}/{len(links)} fehlgeschlagen oder unvollständig. Details im Container-Log.")
 
     log(f"=== Prüflauf beendet. Gesamt: {total_downloaded} Download-Abschlüsse gemeldet, {total_skipped} vorhanden/übersprungen ===", "INFO")
+    status = "beendet" if running else "abgebrochen"
+    notifier.send(
+        f"MegaSync: Prüflauf {status}. {total_downloaded} Download-Abschlüsse gemeldet, "
+        f"{total_skipped} vorhanden/übersprungen, {total_failed} Links fehlgeschlagen/unvollständig."
+    )
     return len(links)
 
 def calculate_sleep_seconds():

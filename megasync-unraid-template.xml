@@ -13,7 +13,7 @@
   <Category>Backup: Tools:</Category>
   <WebUI/>
   <TemplateURL/>
-  <Icon>https://raw.githubusercontent.com/SwissLuckyFox/MegaDownloader/main/icon.png</Icon>
+  <Icon>https://raw.githubusercontent.com/SwissLuckyFox/Megasync/main/Icon.png</Icon>
   <ExtraParams>--restart unless-stopped</ExtraParams>
   <PostArgs/>
   <CPUset/>
@@ -33,4 +33,6 @@
   <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Description="Zeitzone für korrekte Uhrzeiten" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
   <Config Name="MEGA Benutzername (optional)" Target="MEGA_USERNAME" Default="" Description="E-Mail-Adresse deines MEGA-Accounts (optional für höheres Download-Limit)" Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="MEGA Passwort (optional)" Target="MEGA_PASSWORD" Default="" Description="Passwort deines MEGA-Accounts (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Telegram Bot-Token (optional)" Target="TELEGRAM_BOT_TOKEN" Default="" Description="Bot-Token von BotFather. Nur zusammen mit TELEGRAM_CHAT_ID aktiv." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Telegram Chat-ID (optional)" Target="TELEGRAM_CHAT_ID" Default="" Description="Ziel-Chat-ID für neue Downloads, Fortschritt und Prüfergebnisse. Der Bot muss dort Nachrichten senden dürfen." Type="Variable" Display="always" Required="false" Mask="false"/>
 </Container>

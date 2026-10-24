@@ -18,6 +18,9 @@ services:
       # Optionale Zugangsdaten für Mega (höheres Kontingent / Pro-Account):
       # - MEGA_USERNAME=deine-email@beispiel.de
       # - MEGA_PASSWORD=dein-passwort
+      # Optionale Telegram-Benachrichtigungen (Werte in privater .env setzen):
+      # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     volumes:
       # Verzeichnis für die Link.txt Konfiguration:
       - ${LINKS_DIR:-/mnt/user/appdata/megasync}:/config

@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/SwissLuckyFox/MegaDownloader/main/icon.png" width="48" height="48" alt="MegaSync Logo" align="center" /> MegaSync für Unraid (Docker)
+# <img src="Icon.png" width="48" height="48" alt="MegaSync Logo" align="center" /> MegaSync für Unraid (Docker)
 
 Ein automatisierter, schlanker Docker-Container für Unraid, der konfigurierte **MEGA-Links täglich prüft**, bestehende Dateien abgleicht und **nur neue oder veränderte Dateien herunterlädt**.
 
@@ -12,6 +12,7 @@ Ein automatisierter, schlanker Docker-Container für Unraid, der konfigurierte *
 * 📁 **Intelligenter Download:** Verwendet `megatools dl`, vergleicht Dateigrößen und überspringt bereits vorhandene Dateien automatisch.
 * 🛡️ **Unraid-optimiert:** Unterstützt `PUID=99` und `PGID=100` (`nobody:users`), sodass heruntergeladene Dateien problemlos über Windows-/SMB-Freigaben geöffnet und bearbeitet werden können.
 * ⏸️ **Unterbrechungsfrei:** Reagiert sauber auf Neustart- und Stopp-Signale von Unraid.
+* 📬 **Telegram (optional):** Meldet neue Downloads, Fortschritt, Transferlimits und Prüfergebnisse.
 
 ---
 
@@ -25,7 +26,7 @@ Megasync/
 ├── .github/workflows/docker-publish.yml # Automatischer Build und GHCR-Push
 ├── Link.example.txt                # Öffentliche Vorlage ohne echte Links
 ├── Link.txt                        # Private Konfiguration, von Git ignoriert
-├── icon.png                        # Container-Icon für Unraid WebUI
+├── Icon.png                        # Container-Icon für Unraid WebUI
 ├── docker-compose.yml              # Für Docker Compose / Portainer
 ├── megasync-unraid-template.xml    # Vorlage für das Unraid WebUI
 └── README.md                       # Anleitung
@@ -188,6 +189,50 @@ docker compose up -d
 | `MEGA_USERNAME` | *(leer)* | Optional: E-Mail für deinen MEGA-Account (höheres Kontingent). |
 | `MEGA_PASSWORD` | *(leer)* | Optional: Passwort deines MEGA-Accounts. |
 | `SPEED_LIMIT`   | *(leer)* | Optional: Bandbreitenbegrenzung für Downloads (z. B. `10M` für 10 MB/s). |
+| `TELEGRAM_BOT_TOKEN` | *(leer)* | Bot-Token von BotFather; nur zusammen mit `TELEGRAM_CHAT_ID` aktiv. Geheim halten! |
+| `TELEGRAM_CHAT_ID` | *(leer)* | Ziel-Chat-ID (auch negative Gruppen-/Kanal-IDs möglich). |
+
+---
+
+## Telegram-Benachrichtigungen
+
+1. Erstelle in Telegram über **@BotFather** mit `/newbot` einen Bot und kopiere das Token.
+2. Öffne deinen Bot und sende `/start`. Für Gruppen füge den Bot hinzu und sende
+   dort einen an ihn gerichteten Befehl. Für einen Kanal braucht er die Berechtigung,
+   Nachrichten zu veröffentlichen.
+3. Ermittle die Chat-ID über die Telegram Bot API (`getUpdates`, Feld
+   `message.chat.id` bzw. `channel_post.chat.id`). Verwende dafür eine private
+   Umgebung: Das Token ist Bestandteil der API-URL und darf nicht in öffentliche
+   Logs, Screenshots oder Git gelangen.
+4. Setze in Unraid die optionalen Felder **Telegram Bot-Token** und **Telegram Chat-ID**.
+   Bei bestehenden Installationen die Variablen manuell hinzufügen oder das
+   aktualisierte Template verwenden. In Compose die beiden vorbereiteten
+   Umgebungsvariablen aktivieren und die Werte in einer privaten `.env` hinterlegen:
+
+   ```text
+   TELEGRAM_BOT_TOKEN=<dein-bot-token>
+   TELEGRAM_CHAT_ID=<deine-chat-id>
+   ```
+
+5. Erstelle den Container mit den neuen Umgebungsvariablen neu
+   (`docker compose up -d` bzw. **Anwenden** in Unraid).
+
+Ohne beide Werte ist Telegram deaktiviert; eine unvollständige Konfiguration
+erzeugt eine Warnung. Pro Prüflauf mit aktiven Links werden Start und Zusammenfassung
+gemeldet, außerdem fehlgeschlagene/unvollständige Links und erreichte Transferlimits.
+Bei der ersten Fortschrittsmeldung einer Datei wird ein neuer bzw. fortgesetzter
+Download gemeldet, danach der Fortschritt höchstens alle 60 Sekunden pro Datei
+sowie bei 100 Prozent. Explizite `Downloaded`-Meldungen werden ebenfalls weitergeleitet.
+Es gibt keine separate Vorab-Inventur: Neue Dateien werden erst erkannt, wenn
+`megatools` sie herunterlädt; ohne dessen Fortschrittsausgabe sind keine
+Prozentmeldungen möglich.
+
+Nachrichten enthalten Dateinamen und Status, aber keine konfigurierten MEGA-Links,
+MEGA-Zugangsdaten oder rohen Fehlerausgaben. Sie werden als Klartext ohne Markdown-
+oder HTML-Auswertung gesendet. Lange Nachrichten werden gekürzt. Versandfehler
+werden ohne Bot-Token geloggt und brechen den Download nicht ab; API-Aufrufe
+verwenden ein Netzwerk-Timeout von zehn Sekunden. Nicht zugestellte Nachrichten
+werden nicht nachgesendet.
 
 ---
 
